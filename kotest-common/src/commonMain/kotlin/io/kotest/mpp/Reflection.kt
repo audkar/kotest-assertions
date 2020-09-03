@@ -2,7 +2,7 @@ package io.kotest.mpp
 
 import kotlin.reflect.KClass
 
-expect val reflection: Reflection
+val reflection: Reflection = BasicReflection
 
 /**
  * Groups together some basic platform agnostic reflection oeprations.
@@ -52,12 +52,5 @@ object BasicReflection : Reflection {
  */
 fun KClass<*>.bestName(): String = reflection.fqn(this) ?: simpleName ?: this.toString()
 
-/**
- * Finds the first annotation of type T on this class, or returns null if annotations
- * are not supported on this platform or the annotation is missing.
- */
-inline fun <reified T> KClass<*>.annotation(): T? = reflection.annotations(this).filterIsInstance<T>().firstOrNull()
-
-inline fun <reified T> KClass<*>.hasAnnotation(): Boolean = reflection.annotations(this).filterIsInstance<T>().isNotEmpty()
 
 data class Property(val name: String, val call: (Any) -> Any?)

@@ -1,88 +1,56 @@
-buildscript {
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmCompile
 
-   repositories {
-      mavenCentral()
-      mavenLocal()
-      google()
-      maven("https://dl.bintray.com/kotlin/kotlin-eap")
-      maven("https://kotlin.bintray.com/kotlinx")
-      gradlePluginPortal()
-   }
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath(kotlin("gradle-plugin", Versions.kotlin))
+  }
 }
 
 plugins {
-   java
-   kotlin("multiplatform") version Libs.kotlinVersion
-   id("java-library")
-   id("maven-publish")
-   signing
-   id("com.adarshr.test-logger") version Libs.adarshrTestLoggerVersion
-   id("org.jetbrains.dokka") version Libs.dokkaVersion
-   id("io.kotest") version Libs.kotestGradlePlugin
-
-   // To get versions report, execute:
-   // Win: .\gradlew.bat dependencyUpdates -Drevision=release
-   // Other: ./gradlew dependencyUpdates -Drevision=release
-   id("com.github.ben-manes.versions") version Libs.gradleVersionsPluginVersion
+  `dependencies-check`
 }
-
-tasks {
-   javadoc {
-   }
-}
-
-// Configure existing Dokka task to output HTML to typical Javadoc directory
-//tasks.dokka {
-//   outputFormat = "html"
-//   outputDirectory = "$buildDir/javadoc"
-//   configuration {
-//      includeNonPublic = false
-//      skipDeprecated = true
-//      reportUndocumented = false
-//      skipEmptyPackages = true
-//      targets = listOf("JVM")
-//      platform = "JVM"
-//      jdkVersion = 8
-//   }
-//}
-
-// apply plugin: "io.kotest"
 
 allprojects {
+  group = "io.kotest.assertions"
+  version = "4.2.6"
 
-   repositories {
-      mavenCentral()
-      jcenter()
-      google()
-      maven("https://dl.bintray.com/kotlin/kotlin-eap")
-      maven("https://kotlin.bintray.com/kotlinx")
-   }
+  repositories {
+    mavenCentral()
+  }
 
-   group = "io.kotest"
-   version = Ci.publishVersion
-}
-
-kotlin {
-   targets {
-      jvm {
-         compilations.all {
-            kotlinOptions {
-               jvmTarget = "1.8"
-            }
-         }
+  tasks {
+    withType<KotlinJvmCompile> {
+      kotlinOptions.jvmTarget = "1.8"
+    }
+    withType<Test>().all {
+      useJUnitPlatform()
+      filter {
+        isFailOnNoMatchingTests = true
       }
-   }
+    }
+    withType<AbstractTestTask>().all {
+      testLogging {
+        showExceptions = true
+        events = setOf(
+          TestLogEvent.STARTED,
+          TestLogEvent.SKIPPED,
+          TestLogEvent.FAILED,
+          TestLogEvent.PASSED,
+          TestLogEvent.STANDARD_OUT,
+          TestLogEvent.STANDARD_ERROR
+        )
+        exceptionFormat = TestExceptionFormat.FULL
+      }
+    }
+  }
 }
 
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-   kotlinOptions.jvmTarget = "1.8"
-   kotlinOptions.apiVersion = "1.3"
-}
-
-val publications: PublicationContainer = (extensions.getByName("publishing") as PublishingExtension).publications
-
-signing {
-   useGpgCmd()
-   if (Ci.isRelease)
-      sign(publications)
+tasks.wrapper {
+  gradleVersion = "6.6.1"
+  distributionType = Wrapper.DistributionType.ALL
 }
